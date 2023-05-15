@@ -161,3 +161,43 @@ if __name__ == '__main__':
   * 在使用模型的時候還要挑選優化器(optimizer)要用哪種演算法來做下一步的移動
   * 同時還要去定義損失函數的樣子，這個例子是比較簡單的直接用MSE，也可以另訂自己需要的函數
   * 在另外一個模型使用上會看到的是，把損失函數、訓練過程等等的直接包進 class 裡面做一個模板
+
+
+### GPU
+pytorch可以使用GPU來加速運算，但是要先確認幾件事情
+* 要先有硬體(廢話)
+* 要確認一些相對應的工具都有安裝了
+  * Pytorch GPU版
+  * Cuda toolkit(N卡的驅動)
+* 目前A卡的GPU運算比較難用(限制一堆)，所以主要紀錄N卡的操作
+
+使用GPU做運算的想法跟概念都算簡單的，就是把CPU運算的東西透過指令移動到GPU上去做運算，所以流程簡單來說是這樣：
+$$
+\text{CPU的資料} \stackrel{指令移動}{\Longrightarrow} \text{移至GPU並運算} \stackrel{指令移動}{\Longrightarrow} \text{結果移回CPU做輸出等等的}
+$$
+
+會移動的東西有：
+* Input 的資料
+* Ground Truth 的資料
+* Model
+* Loss Function
+
+Note: 有些東西可以不用做 __移動__ 這件事，在GPU上是可以直接做宣告的，在torch裡面有很多指令有 __'device'__ 的這個參數可以指定說要在哪個裝置上面完成這項指令
+
+預計使用到的指令有兩種
+```python
+# 宣告裝置是哪個，GPU or CPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# 移動東西到裝置上面去
+# model: 模型，features: 輸入數據，labels: 輸入的標記
+model.to(device)
+features = features.to(device)
+labels = labels.to(device)
+```
+
+```python
+# 這一種做法就是沒有指定，變成是要自己去先確認可以用
+model.cuda()
+features = features.cuda()
+labels = labels.cuda()
+```
