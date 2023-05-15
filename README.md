@@ -72,7 +72,9 @@ Note:
 ```python
    import torch 
 ```
-
+* torch
+  * Pytorch本人
+  * 引入時的名字是 __'torch'__，不要打錯名稱了
 
 * torch.tensor(*input, dtype=, device=)
   * 宣告一個Tensor的變數，不論是直接宣告或是講原有參數做轉換
@@ -81,10 +83,81 @@ Note:
   * device: 指頂目前這個變數要放在哪裡， CPU或GPU
 
 * torch.nn
-* torch.nn.Module
-* torch.nn.Linear
+  * 用於建立神經網路的工具包
+  * 詳細內含的函數可以去找官方的說明文件
+  * 操作時可以用一個列表(list)來存每一層(layer)的計算跟活化函數的相關資訊，然後再透過nn.Sequential(list)把網路迅速建立起來
+
+這邊舉個例子
+```python
+# import packages
+
+import torch
+import torch.nn as nn
+import numpy as np
+import random
+import matplotlib.pyplot as plt
+```
 
 ```python
-import torch
-import troch.nn as nn
+# define the model class and the data build function
+def data(n):
+    x = torch.unsqueeze(torch.linspace(-1,1,n), dim = 1)
+    y = 2*x.pow(2) + 0.3 * torch.rand(x.size())
+    return x,y
+
+class LearnML(nn.Module):
+    def __init__(self, neurons):
+        super(LearnML, self).__init__()
+        self.net = self.network(neurons)
+
+    def forward(self,x):
+        res = self.net(x)
+        return res
+    
+    def network(self, neuron):
+        depth = len(neuron)
+        layers = []
+        for idx in range(1, depth):
+            layer = nn.Linear(neuron[idx - 1],neuron[idx])
+            layers.append(layer)
+            if idx < depth:
+                layers.append(nn.Tanh())
+        return nn.Sequential(*layers)
+    '''
+    def xavier_init(self):
+        for name, param in self.net.named_parameters():
+            if name.endswith('weight'):
+                nn.init.xavier_uniform_(param)
+            elif name.endswith('bias'):
+                nn.init.zeros_(param)
+        return
+    '''
 ```
+* 這邊要注意的有幾個點
+  * 在一開始宣告模型的時候是直接用 nn 裡的 Module
+  * 在模型的這個類別裡面不只要有 __ init __，還要宣告一個 forward 函數來說這個網路的順向方向是怎麼做計算的
+  * 這邊展示的是另外宣告一個函數來建網路，在比較簡單的狀況也可以直接在 init 裡面直接做一個出來，不用另外定義跟呼叫函數
+  * 有時候這邊會多加一些初始化的函數，用來初始化網路
+
+```python
+if __name__ == '__main__':
+    vec_len = 100
+    x, y = data(vec_len)
+    mdl = LearnML([1,vec_len,vec_len,1])
+    optimizer = torch.optim.Adagrad(mdl.parameters())
+    loss_fn = nn.MSELoss()
+
+    for epoch in range(100):
+        pred = mdl(x.reshape(100,1))
+        loss = loss_fn(pred,y.reshape(100,1))
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        if epoch%10 == 0:
+            plt.scatter(x, mdl(x.reshape(100,1)).detach().numpy())
+```
+
+* 這邊要說的有
+  * 在使用模型的時候還要挑選優化器(optimizer)要用哪種演算法來做下一步的移動
+  * 同時還要去定義損失函數的樣子，這個例子是比較簡單的直接用MSE，也可以另訂自己需要的函數
+  * 在另外一個模型使用上會看到的是，把損失函數、訓練過程等等的直接包進 class 裡面做一個模板
